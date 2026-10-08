@@ -1,0 +1,29 @@
+services:
+  - type: cron
+    name: threads-ai-archive-daily
+    runtime: python
+    plan: 0.5c-512mb
+    schedule: '0 23 * * *' # UTC 23:00 = KST 08:00 next day
+    buildCommand: pip install -r requirements.txt && python -m unittest discover -s tests -v
+    startCommand: python -m src.main
+    envVars:
+      - key: SOURCE_MODE
+        value: sample
+      - key: DRY_RUN
+        value: 'true'
+      - key: THREADS_API_ENABLED
+        value: 'false'
+      - key: THREADS_ACCESS_TOKEN
+        sync: false
+      - key: NOTION_TOKEN
+        sync: false
+      - key: NOTION_DATA_SOURCE_ID
+        sync: false
+      - key: NOTION_VERSION
+        value: '2026-03-11'
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
