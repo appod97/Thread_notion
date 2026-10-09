@@ -1,0 +1,99 @@
+name: Manual Threads API search
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  threads-search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Test Threads keyword search
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          import requests
+
+
+          endpoint = "https://graph.threads.net/v1.0/keyword_search"
+          token = os.environ.get("THREADS_ACCESS_TOKEN", "").strip()
+
+          if not token:
+              print("HTTP status: not requested")
+              print("Error type: MissingThreadsAccessToken")
+              sys.exit(1)
+
+          params = {
+              "q": "ChatGPT",
+              "search_type": "RECENT",
+              "fields": "id,text,timestamp,username,permalink",
+              "limit": 5,
+              "access_token": token,
+          }
+
+          try:
+              response = requests.get(endpoint, params=params, timeout=30)
+          except requests.RequestException as exc:
+              print("HTTP status: not received")
+              print(f"Error type: {type(exc).__name__}")
+              sys.exit(1)
+
+          print(f"HTTP status: {response.status_code}")
+
+          try:
+              payload = response.json()
+          except (requests.JSONDecodeError, json.JSONDecodeError, ValueError):
+              print("Error type: InvalidJsonResponse")
+              sys.exit(1)
+
+          if not response.ok:
+              error = payload.get("error", {}) if isinstance(payload, dict) else {}
+              error_type = str(error.get("type") or "ThreadsApiError")
+              error_code = error.get("code")
+              error_subcode = error.get("error_subcode")
+              print(f"Error type: {error_type}")
+              if error_code is not None:
+                  print(f"Error code: {error_code}")
+              if error_subcode is not None:
+                  print(f"Error subcode: {error_subcode}")
+              sys.exit(1)
+
+          results = payload.get("data", []) if isinstance(payload, dict) else []
+          if not isinstance(results, list):
+              print("Error type: InvalidDataShape")
+              sys.exit(1)
+
+          print(f"Search result count: {len(results)}")
+          for index, post in enumerate(results, start=1):
+              if not isinstance(post, dict):
+                  print(f"Result {index}: invalid item")
+                  continue
+              metadata = {
+                  "id": post.get("id"),
+                  "username": post.get("username"),
+                  "timestamp": post.get("timestamp"),
+                  "permalink": post.get("permalink"),
+              }
+              print(f"Result {index}: {json.dumps(metadata, ensure_ascii=False)}")
+          PY
