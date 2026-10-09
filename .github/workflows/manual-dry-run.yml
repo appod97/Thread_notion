@@ -1,0 +1,63 @@
+name: Manual dry run
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Run sample pipeline without external APIs
+        env:
+          SOURCE_MODE: sample
+          DRY_RUN: 'true'
+          THREADS_API_ENABLED: 'false'
+          OPENAI_API_KEY: ''
+          NOTION_TOKEN: ''
+          NOTION_DATA_SOURCE_ID: ''
+          TELEGRAM_BOT_TOKEN: ''
+          TELEGRAM_CHAT_ID: ''
+        run: python -m src.main
+
+      - name: Verify dry-run report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path('reports/last_run.json').read_text(encoding='utf-8'))
+          expected = {
+              'fetched': 5,
+              'duplicate_batch': 1,
+              'relevant': 3,
+              'saved': 3,
+              'failed': 0,
+          }
+          actual = {key: report.get(key) for key in expected}
+          if actual != expected or report.get('dry_run') is not True:
+              raise SystemExit(
+                  f'Dry-run validation failed: expected={expected}, actual={actual}, '
+                  f'dry_run={report.get("dry_run")}'
+              )
+          print(f'Dry-run validation passed: {actual}')
+          PY
