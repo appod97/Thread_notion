@@ -29,6 +29,6 @@ jobs:
           DRY_RUN: 'true'
           THREADS_API_ENABLED: 'true'
           THREADS_SEARCH_ENDPOINT: /v1.0/keyword_search
-          THREADS_QUERIES: ChatGPT
+          THREADS_QUERIES: AI,OpenAI,ChatGPT,Gemini
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
         run: python -m src.main
