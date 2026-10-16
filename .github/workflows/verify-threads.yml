@@ -1,0 +1,34 @@
+
+name: Verify Threads Search
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-threads:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Search Threads
+        env:
+          SOURCE_MODE: threads
+          DRY_RUN: 'true'
+          THREADS_API_ENABLED: 'true'
+          THREADS_SEARCH_ENDPOINT: /v1.0/keyword_search
+          THREADS_QUERIES: ChatGPT
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+        run: python -m src.main
