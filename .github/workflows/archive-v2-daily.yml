@@ -1,0 +1,73 @@
+name: AI Tech Trend Archive v2 daily 08:00 KST
+
+on:
+  schedule:
+    # GitHub schedules use UTC. 23:00 UTC = next day 08:00 Asia/Seoul.
+    - cron: '0 23 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-tech-v2
+  cancel-in-progress: false
+
+jobs:
+  daily-archive:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ARCHIVE_V2_MODE: live
+      DRY_RUN: 'false'
+      ENABLE_ARCHIVE_WRITES: 'true'
+      MAX_NEW_RECORDS: '5'
+      THREADS_API_ENABLED: 'false'
+      GITHUB_TOKEN: ${{ github.token }}
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      OPENAI_API_KEY: ''
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Verify required secrets without printing values
+        run: |
+          python - <<'PY'
+          import os
+          required = ('NOTION_TOKEN','NOTION_DATA_SOURCE_ID','TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID')
+          missing = [key for key in required if not os.environ.get(key)]
+          if missing:
+              raise SystemExit('Missing GitHub Secrets: ' + ', '.join(missing))
+          print('Required GitHub Secrets available.')
+          PY
+      - name: Archive RSS and GitHub trends to Notion, then notify Telegram
+        run: python -m src.archive_v2
+      - name: Check archive results
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('reports/last_run_v2.json')
+          r=json.loads(p.read_text(encoding='utf-8'))
+          assert r.get('mode') == 'live'
+          assert r.get('dry_run') is False
+          assert r.get('failed') == 0, 'Archive reported failures'
+          assert r.get('telegram_sent') is True, 'Telegram notification was not confirmed'
+          assert 0 <= r.get('saved', -1) <= 5
+          print('Daily archive finished: collected=',r['fetched'],'new=',r['saved'],'existing=',r['duplicate_notion'])
+          PY
+      - name: Upload JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: archive-v2-daily-report
+          path: reports/last_run_v2.json
+          if-no-files-found: warn
