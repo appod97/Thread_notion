@@ -1,0 +1,16 @@
+{
+  "feeds": [
+    {
+      "name": "Google News AI",
+      "url": "https://news.google.com/rss/search?q=artificial+intelligence+when:7d&hl=en-US&gl=US&ceid=US:en"
+    },
+    {
+      "name": "Google News AI education",
+      "url": "https://news.google.com/rss/search?q=AI+education+when:7d&hl=en-US&gl=US&ceid=US:en"
+    }
+  ],
+  "github_queries": [
+    "topic:llm stars:>50",
+    "topic:ai-agent stars:>20"
+  ]
+}
