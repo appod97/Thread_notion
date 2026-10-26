@@ -66,6 +66,9 @@ def run(session=None):
     mode=os.getenv("ARCHIVE_V2_MODE","sample").lower()
     dry=os.getenv("DRY_RUN","true").lower()!="false"
     allow_write=os.getenv("ENABLE_ARCHIVE_WRITES","false").lower()=="true"
+    max_new=int(os.getenv("MAX_NEW_RECORDS","5"))
+    if max_new < 1 or max_new > 5:
+        raise ValueError("MAX_NEW_RECORDS must be between 1 and 5 for this integration phase")
     report={"mode":mode,"dry_run":dry,"fetched":0,"unique":0,"duplicate_batch":0,"duplicate_notion":0,"saved":0,"irrelevant":0,"failed":0,"telegram_sent":False,"errors":[]}
     try:
         if mode not in ("sample","live"):raise ValueError("unsupported mode")
@@ -85,6 +88,8 @@ def run(session=None):
         config=Config.from_env()
         existing=set() if dry else notion_existing_ids(config,session)
         for item in unique.values():
+            if report["saved"] >= max_new:
+                break
             if item["topic"]=="기타":report["irrelevant"]+=1;continue
             key=post_uid(item)
             if key in existing:report["duplicate_notion"]+=1;continue
