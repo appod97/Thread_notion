@@ -1,0 +1,45 @@
+name: Archive v2 PR checks
+on:
+  pull_request:
+    paths:
+      - 'src/archive_v2.py'
+      - 'tests/test_archive_v2.py'
+      - 'config/rss_sources.json'
+      - 'requirements.txt'
+      - '.github/workflows/archive-v2*.yml'
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ARCHIVE_V2_MODE: sample
+      DRY_RUN: 'true'
+      ENABLE_ARCHIVE_WRITES: 'false'
+      THREADS_API_ENABLED: 'false'
+      OPENAI_API_KEY: ''
+      NOTION_TOKEN: ''
+      NOTION_DATA_SOURCE_ID: ''
+      TELEGRAM_BOT_TOKEN: ''
+      TELEGRAM_CHAT_ID: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+      - run: python -m src.archive_v2
+      - name: Assert no writes and valid sample report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('reports/last_run_v2.json').read_text(encoding='utf-8'))
+          assert r['dry_run'] is True
+          assert r['fetched']==4 and r['unique']==3 and r['duplicate_batch']==1
+          assert r['saved']==3 and r['failed']==0
+          assert r['telegram_sent'] is False
+          print('Archive v2 safe sample verification passed')
+          PY
