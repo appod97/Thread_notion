@@ -1,0 +1,51 @@
+name: AI Tech Archive v2 manual Notion integration
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type WRITE to allow live RSS/GitHub -> Notion writes and one Telegram notification'
+        required: true
+        default: 'NO'
+permissions:
+  contents: read
+concurrency:
+  group: ai-tech-v2
+  cancel-in-progress: false
+jobs:
+  manual-write:
+    if: ${{ inputs.confirmation == 'WRITE' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ARCHIVE_V2_MODE: live
+      DRY_RUN: 'false'
+      ENABLE_ARCHIVE_WRITES: 'true'
+      THREADS_API_ENABLED: 'false'
+      GITHUB_TOKEN: ${{ github.token }}
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      OPENAI_API_KEY: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Ensure required secrets are present
+        run: |
+          python - <<'PY'
+          import os
+          keys = ('NOTION_TOKEN','NOTION_DATA_SOURCE_ID','TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID')
+          missing=[k for k in keys if not os.getenv(k)]
+          if missing: raise SystemExit('Missing Secrets: '+', '.join(missing))
+          print('Required secrets present; values hidden')
+          PY
+      - name: Live collection and gated archive
+        run: python -m src.archive_v2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: archive-v2-live-report
+          path: reports/last_run_v2.json
