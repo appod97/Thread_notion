@@ -20,6 +20,7 @@ jobs:
       ARCHIVE_V2_MODE: live
       DRY_RUN: 'false'
       ENABLE_ARCHIVE_WRITES: 'true'
+      MAX_NEW_RECORDS: '5'
       THREADS_API_ENABLED: 'false'
       GITHUB_TOKEN: ${{ github.token }}
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
