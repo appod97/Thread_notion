@@ -17,18 +17,22 @@ jobs:
           import json,os,urllib.request,urllib.error
           token=os.environ.get('NOTION_TOKEN')
           if not token: raise SystemExit('FAIL: NOTION_TOKEN secret is missing')
+          if any(c in token for c in ('\\r', '\\n', '\\t')):
+              raise SystemExit('FAIL: NOTION_TOKEN contains a line break or tab; replace the GitHub Secret with the single-line raw token')
+          if token.startswith('Bearer '):
+              raise SystemExit('FAIL: NOTION_TOKEN must contain only the raw token, without Bearer prefix')
           url='https://api.notion.com/v1/data_sources/'+os.environ['TARGET_DATA_SOURCE_ID']
           req=urllib.request.Request(url,headers={'Authorization':'Bearer '+token,'Notion-Version':'2026-03-11'})
           try:
               with urllib.request.urlopen(req,timeout=20) as f:
                   result=json.load(f)
           except urllib.error.HTTPError as e:
-              raise SystemExit(f'FAIL: Notion returned HTTP {e.code}; share new DB with existing API integration') from None
+              raise SystemExit(f'FAIL: Notion returned HTTP {e.code}; check token validity and API access') from None
           properties=result.get('properties',{})
           title_names=[k for k,v in properties.items() if v.get('type')=='title']
           if 'Name' not in title_names:
               raise SystemExit('FAIL: Expected title property Name; found '+str(title_names))
           print('PASS: Existing GitHub NOTION_TOKEN can access AI Trend DB')
-          print('PASS: Database title property is 트렌드')
+          print('PASS: Database title property is Name')
           print('PASS: Target data source matches new archive')
           PY
