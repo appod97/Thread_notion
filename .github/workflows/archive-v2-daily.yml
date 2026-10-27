@@ -1,9 +1,10 @@
-name: AI Tech Trend Archive v2 daily 08:00 KST
+name: AI Tech Trend Archive v2 daily 08:07 KST
 
 on:
+  workflow_dispatch:
   schedule:
-    # GitHub schedules use UTC. 23:00 UTC = next day 08:00 Asia/Seoul.
-    - cron: '0 23 * * *'
+    # GitHub schedules use UTC. 23:07 UTC = next day 08:07 Asia/Seoul.
+    - cron: '7 23 * * *'
 
 permissions:
   contents: read
