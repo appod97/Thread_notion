@@ -1,4 +1,4 @@
-name: Verify new AI Trend DB connection (read only)
+name: Verify original AI Trend DB connection (read only)
 on:
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ jobs:
     timeout-minutes: 5
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-      TARGET_DATA_SOURCE_ID: '406df156-2486-80ee-ab8d-000b5bb54685'
+      TARGET_DATA_SOURCE_ID: '3f3df156-2486-8089-82aa-000b4d8cb40d'
     steps:
       - name: Verify Notion API access and title property
         run: |
@@ -26,8 +26,8 @@ jobs:
               raise SystemExit(f'FAIL: Notion returned HTTP {e.code}; share new DB with existing API integration') from None
           properties=result.get('properties',{})
           title_names=[k for k,v in properties.items() if v.get('type')=='title']
-          if '트렌드' not in title_names:
-              raise SystemExit('FAIL: Expected title property 트렌드; found '+str(title_names))
+          if 'Name' not in title_names:
+              raise SystemExit('FAIL: Expected title property Name; found '+str(title_names))
           print('PASS: Existing GitHub NOTION_TOKEN can access AI Trend DB')
           print('PASS: Database title property is 트렌드')
           print('PASS: Target data source matches new archive')
