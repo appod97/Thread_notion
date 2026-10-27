@@ -289,6 +289,37 @@ def notion_save(post: dict[str, Any], config: Config, session: requests.Session)
         "properties": {config.notion_title_property: {"title": [{"text": {"content": title[:2000]}}]}},
         "children": blocks,
     }
+    # v2 archive: map collector metadata to real Notion database properties.
+    # Keep the legacy Name title and [ID:...] marker for backward-compatible deduplication.
+    if str(post.get("id", "")).startswith("v2:"):
+        from email.utils import parsedate_to_datetime
+        from datetime import date
+
+        def rich_value(value: str) -> dict[str, Any]:
+            return {"rich_text": [{"text": {"content": str(value)[:1900]}}]}
+
+        source = str(post.get("source", ""))
+        topic = str(post.get("topic", ""))
+        published = str(post.get("timestamp", "")).strip()
+        props = body["properties"]
+        if source in {"RSS", "GitHub"}:
+            props["수집 구분"] = {"select": {"name": source}}
+        if topic in TOPICS or topic == "기타":
+            props["주제"] = {"select": {"name": topic}}
+        props["출처"] = rich_value(str(post.get("username", "")))
+        props["요약"] = rich_value(str(post.get("summary", "")))
+        props["중복 식별값"] = rich_value(identifier)
+        if permalink.startswith(("https://", "http://")):
+            props["원문 링크"] = {"url": permalink}
+        if published:
+            try:
+                try:
+                    date_value = datetime.fromisoformat(published.replace("Z", "+00:00")).date()
+                except ValueError:
+                    date_value = parsedate_to_datetime(published).date()
+                props["게시일"] = {"date": {"start": date_value.isoformat()}}
+            except (TypeError, ValueError, OverflowError):
+                LOG.warning("Skipping invalid published date for record %s", identifier)
     response = session.post("https://api.notion.com/v1/pages", headers=notion_headers(config), json=body, timeout=30)
     response.raise_for_status()
     return str(response.json().get("url", ""))
