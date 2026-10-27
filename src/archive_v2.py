@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode
 import feedparser
 import requests
+from requests.exceptions import HTTPError
 from src.main import Config,http_session,post_uid,notion_existing_ids,notion_save,telegram_notify
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -61,6 +62,12 @@ def fetch_live(session):
         except Exception as e:errors.append({"source":"GitHub","type":type(e).__name__})
     return result,errors
 
+def safe_error(exc):
+    if isinstance(exc, HTTPError) and exc.response is not None:
+        response = exc.response
+        return {"type": "HTTPError", "status": response.status_code, "endpoint": response.request.path_url.split("?")[0], "notion_code": (response.json().get("code", "") if "application/json" in response.headers.get("Content-Type", "") else "")}
+    return {"type": type(exc).__name__}
+
 def run(session=None):
     session=session or http_session()
     mode=os.getenv("ARCHIVE_V2_MODE","sample").lower()
@@ -99,9 +106,9 @@ def run(session=None):
                     existing.add(key)
                 report["saved"]+=1
             except Exception as exc:
-                report["failed"]+=1;report["errors"].append({"source":"Notion","type":type(exc).__name__})
+                report["failed"]+=1;report["errors"].append({"source":"Notion",**safe_error(exc)})
     except Exception as exc:
-        report["failed"]+=1;report["errors"].append({"source":"pipeline","type":type(exc).__name__})
+        report["failed"]+=1;report["errors"].append({"source":"pipeline",**safe_error(exc)})
     if not dry and allow_write:
         try:
             config=Config.from_env()
