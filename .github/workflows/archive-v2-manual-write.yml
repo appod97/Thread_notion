@@ -20,11 +20,11 @@ jobs:
       ARCHIVE_V2_MODE: live
       DRY_RUN: 'false'
       ENABLE_ARCHIVE_WRITES: 'true'
-      MAX_NEW_RECORDS: '5'
+      MAX_NEW_RECORDS: '1'
       THREADS_API_ENABLED: 'false'
       GITHUB_TOKEN: ${{ github.token }}
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-      NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
+      NOTION_DATA_SOURCE_ID: '3f3df156-2486-8089-82aa-000b4d8cb40d'
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       OPENAI_API_KEY: ''
